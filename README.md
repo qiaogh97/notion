@@ -13,7 +13,8 @@ Cost是文本项，必须是1h3m这样的形式，方便代码读取
 ## 2.新建一个Intergration
 在[https://notion.so/my-integrations](https://notion.so/my-integrations)中新建一个intergration，新建完成之后即可获取到该intergration的Token，一般是以'secret_'开头的字符串，后面有用。
 ## 3.在notion数据库中添加Connection
-Add connections
+进入数据库页面，一定不能是数据库的父页面，点击右上角三个点，即可出现Add connections选项
+
 ![demo connection](https://github.com/qiao1025566574/notion/blob/main/demo_connection.png)
 
 官方文档：
@@ -29,7 +30,10 @@ https://github.com/ramnes/notion-sdk-py
 ```
 https://www.notion.so/qiaogh/8d19ff252abf43969d12ab1b9d99b137?v=c2d791468afa406c8bdd4213fc05666d
 ```
-这里datasetbse_id就是8d19ff252abf43969d12ab1b9d99b137，即斜杠最后一项，问号之前的字符串
+这里datasetbse_id就是8d19ff252abf43969d12ab1b9d99b137，即斜杠最后一项，问号之前的字符串。
+如果你获取的网址形式和我不一样，没有问号，说明不是数据库页面，很可能进入了数据库的父页面。如果是这样的情况，点击数据库右上角的箭头进入数据库页面，如下图：
+
+![](https://github.com/qiao1025566574/notion/blob/main/demo_databse.png)
 
 ## 6.配置代码超参数
 ### 6.1 配置TOKEN
