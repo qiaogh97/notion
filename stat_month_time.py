@@ -1,9 +1,11 @@
 import os
 import requests
+import pickle
 from notion_client import Client
 from pprint import pprint
 from tabulate import tabulate
 from calendar import isleap
+from notion_client.helpers import iterate_paginated_api
 import matplotlib.pyplot as plt
 plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']
 
@@ -38,22 +40,31 @@ def time2str(time):
         return f'{h}h{m}m'
 
 def get_page():
+
     # 利用notion api查询数据库数据
     notion = Client(auth=os.environ["NOTION_TOKEN"])
-    my_page = notion.databases.query(
-        **{
-            "database_id": database_id,
+
+    block_list = []
+    for block in iterate_paginated_api(
+        notion.databases.query, database_id=database_id
+    ):
+        block_list.append(block)
+    return block_list    
+    #my_page = notion.databases.query(
+        #**{
+            #"database_id": database_id,
             #"filter": {
                 #"property": "Landmark",
                 #"rich_text": {
                     #"contains": "Bridge",
                 #},
             #},
-        }
-    )
-    return my_page
+        #}
+    #)
+    #return my_page
 
 def get_table(ori_data_list):
+    day_num = get_day_num()
     # 得到表格统计数据
     content_dict = {}
     count_dict = {}
@@ -65,15 +76,32 @@ def get_table(ori_data_list):
         else:
             content_dict[content] = time
             count_dict[content] = 1
-    total_print_list = [['内容', '总时间', '天数', '平均时间']]
+    total_print_list = [['内容', '总时间', '天数', '时间/天(有效)', '时间/天(总)']]
     for content in content_dict:
         time = content_dict[content]
         time_str = time2str(time)
         count = count_dict[content]
         avg_time = int(time/count)
         avg_time_str = time2str(avg_time)
-        total_print_list.append([content, time_str, count, avg_time_str])
-    print(tabulate(total_print_list))
+        avg_day_time = int(time/day_num)
+        avg_day_time_str = time2str(avg_day_time)
+        total_print_list.append([content, time_str, count, avg_time_str, avg_day_time_str])
+    print(tabulate(total_print_list, headers='firstrow', tablefmt='grid'))
+
+def get_ori_data_from_list(block_list):
+    # 得到原始数据
+    ori_data_list = []
+    for my_page in block_list:
+        for page in my_page:
+            this_dict = page['properties']
+            date_number = this_dict['Number']['title'][0]['text']['content']
+            date, number = date_number.split('-')
+            content = this_dict['Content']['select']['name']
+            time_str = this_dict['Cost']['rich_text'][0]['text']['content']
+            time = str2time(time_str)
+            ori_data_list.append([date, number, time, content])
+    return ori_data_list
+
 
 def get_ori_data(my_page):
     # 得到原始数据
@@ -142,30 +170,55 @@ def plt_pie(ori_data_list, output_path='3.png'):
         time = content_dict[content]
         content_list.append(content)
         time_list.append(time)
+
+ 
     my_dpi = 96
-    plt.figure(figsize=(480/my_dpi, 480/my_dpi), dpi=my_dpi)
-    plt.pie(x=time_list, labels=content_list, autopct='%.2f%%')
-    plt.title(f'月级总时间分类占比图', fontsize=20)
+    plt.figure(figsize=(720/my_dpi, 720/my_dpi), dpi=my_dpi)
+    patches, texts = plt.pie(time_list, labels=content_list, pctdistance=1.2)
+    for t in texts:
+        t.set_size(12)
+    total_time = sum(time_list)
+    time_percent_list = [f'{time/total_time:.2%}' for time in time_list]
+    labels = [f'{i} {j} ({v})' for i,j,v in zip(content_list, time_percent_list, time_list)]
+    patches, labels, dummy = zip(*sorted(zip(patches, labels, time_list), key=lambda x:x[2], reverse=True))
+    plt.legend(patches, labels, loc='best', fontsize=8)
+    plt.title(f'{year}年{month}月时间分类占比图', fontsize=28)
+    plt.tight_layout()
     plt.savefig(output_path)
     plt.clf()
     print(f'Pie picture has been saved to path:{output_path}.')
 
 def main():
-    my_page = get_page()
-    ori_data_list = get_ori_data(my_page)
-
+    #my_page = get_page()
+    #ori_data_list = get_ori_data(my_page)
+    pickle_filepath = f'./time/{year}_{month}_block_list.pickle'
+    if os.path.exists(pickle_filepath):
+        pickle_file = open(pickle_filepath, 'rb')
+        block_list = pickle.load(pickle_file)
+        pickle_file.close()
+        print(f'load block_list from {pickle_filepath}')
+    else:
+        block_list = get_page()
+        pic = open(pickle_filepath, 'wb')
+        pickle.dump(block_list, pic)
+        pic.close()
+        print(f'load from url')
+        print(f'save block_list to {pickle_filepath}')
+    ori_data_list = get_ori_data_from_list(block_list)
+    with open(f'./time/{year}_{month}_content.txt', 'w') as fw:
+        for ori_data in ori_data_list:
+            for data in ori_data:
+                fw.write(str(data))
+                fw.write(' ')
+            fw.write('\n')
     get_table(ori_data_list)
-    plt_bar(ori_data_list, '睡觉')
-    plt_bar(ori_data_list, '工作')
-    plt_bar(ori_data_list, '通勤')
-    plt_bar(ori_data_list, '吃饭')
-    plt_bar(ori_data_list, '洗漱')
-    plt_bar(ori_data_list, '计划')
-    plt_bar(ori_data_list, '读书')
-    plt_pie(ori_data_list)
+    column_list = ['睡觉', '工作', '通勤', '吃饭', '洗漱', '计划', '读书', '娱乐', '社交', '自我提升']
+    for column in column_list:
+        plt_bar(ori_data_list, column, f'./time/{year}{month:02}_{column}.png')
+    plt_pie(ori_data_list, f'./time/{year}{month:02}_pie.png')
 
 if __name__=='__main__':
-    year, month = 2023, 1
-    database_id = '60b84003c1454835b590a53a85a76dd4'
+    year, month = 2023, 2
+    database_id = '8d19ff252abf43969d12ab1b9d99b137'
     main()
     print('Done.')
