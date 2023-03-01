@@ -20,7 +20,7 @@ pip install notion_client
 notion-sdk-py库链接：
 https://github.com/ramnes/notion-sdk-py
 ## 5.获取datasetbase_id
-一定要进入数据库页面，不能算数据库的父页面当中，获取数据库的网址，例如：
+一定要进入数据库页面，不能是数据库的父页面当中，获取数据库的网址，例如：
 ```
 https://www.notion.so/qiaogh/8d19ff252abf43969d12ab1b9d99b137?v=c2d791468afa406c8bdd4213fc05666d
 ```
