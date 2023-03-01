@@ -33,7 +33,7 @@ https://www.notion.so/qiaogh/8d19ff252abf43969d12ab1b9d99b137?v=c2d791468afa406c
 这里datasetbse_id就是8d19ff252abf43969d12ab1b9d99b137，即斜杠最后一项，问号之前的字符串。
 如果你获取的网址形式和我不一样，没有问号，说明不是数据库页面，很可能进入了数据库的父页面。如果是这样的情况，点击数据库右上角的箭头进入数据库页面，如下图：
 
-![](https://github.com/qiao1025566574/notion/blob/main/demo_databse.png)
+![](https://github.com/qiao1025566574/notion/blob/main/demo_database.png)
 
 ## 6.配置代码超参数
 ### 6.1 配置TOKEN
